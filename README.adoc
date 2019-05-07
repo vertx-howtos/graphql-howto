@@ -1,0 +1,319 @@
+= Implementing a GraphQL server
+:page-permalink: /
+:page-github: vertx-howtos/graphql-howto
+
+This document will show you how to implement a GraphQL server.
+
+== What you will build
+
+You will build a GraphQL server to manage your personal tasks (a.k.a. the todo list).
+
+The application consists in a few files:
+
+. the `tasks.graphqls` schema file
+. the `Task` data class
+. the `GraphQLVerticle` class
+
+== What you need
+
+* A text editor or IDE
+* Java 8 higher
+* Maven or Gradle
+
+== Create a project
+
+The code of this project contains Maven and Gradle build files that are functionally equivalent.
+
+=== Using Maven
+
+Here is the content of the `pom.xml` file you should be using:
+
+ifdef::env-github[]
+link:pom.xml[Maven POM file]
+endif::env-github[]
+ifndef::env-github[]
+[source,xml,role="collapsed"]
+.Maven `pom.xml`
+----
+include::pom.xml[]
+----
+endif::env-github[]
+
+=== Using Gradle
+
+Assuming you use Gradle with the Kotlin DSL, here is what your `build.gradle.kts` file should look like:
+
+ifdef::env-github[]
+link:build.gradle.kts[Gradle build file]
+endif::env-github[]
+ifndef::env-github[]
+[source,kotlin,role="collapsed"]
+.Gradle `build.gradle.kts`
+----
+include::build.gradle.kts[]
+----
+endif::env-github[]
+
+== Managing tasks with Vert.x Web and GraphQL
+
+=== Creating the schema
+
+First things first, let's create a GraphQL schema for the task management app:
+
+ifdef::env-github[]
+link:src/main/resources/tasks.graphqls[GraphQL Schema]
+endif::env-github[]
+ifndef::env-github[]
+[source]
+.GraphQL Schema `src/main/resources/tasks.graphqls`
+----
+include::src/main/resources/tasks.graphqls[]
+----
+endif::env-github[]
+
+The schema defines:
+
+* the `Task` _type_ with 3 fields: `id`, `description` and `completed`
+* the `allTasks` _query_ that returns an array of tasks and optionally takes a parameter `uncompletedOnly` (defaults to `true`)
+* the `complete` _mutation_ that takes the task `id` as parameter and returns a _boolean_ indicating whether the operation was succesful
+
+=== Implementing the server
+
+In the application, tasks will be modeled by the `Task` class:
+
+ifdef::env-github[]
+link:src/main/java/io/vertx/howtos/graphql/Task.java[Task class]
+endif::env-github[]
+ifndef::env-github[]
+[source,java,role="collapsed"]
+.Java `src/main/java/io/vertx/howtos/graphql/Task.java`
+----
+include::src/main/java/io/vertx/howtos/graphql/Task.java[]
+----
+<1> a random identifier is assigned when a `Task` instance is created
+endif::env-github[]
+
+IMPORTANT: The `Task` class field names must match those of the corresponding GraphQL schema type.
+
+On startup, we shall create a few items:
+
+ifdef::env-github[]
+link:src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java[GraphQLVerticle initData method]
+endif::env-github[]
+ifndef::env-github[]
+[source,java,role="collapsed"]
+.Java `src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java`
+----
+include::src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java[tag=initData]
+----
+endif::env-github[]
+
+Then the https://www.graphql-java.com/[GraphQL-Java] engine must be setup:
+
+ifdef::env-github[]
+link:src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java[GraphQLVerticle setupGraphQL method]
+endif::env-github[]
+ifndef::env-github[]
+[source,java,role="collapsed"]
+.Java `src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java`
+----
+include::src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java[tag=setupGraphQL]
+----
+<1> Read the schema file from classpath
+<2> `TypeDefinitionRegistry` is the GraphQL-Java runtime equivalent to the schema file definitions
+<3> `RuntimeWiring` tells GraphQL-Java how to resolve types and fetch data
+<4> `GraphQLSchema` connects the runtime type definitions with the type resolvers and data fetchers
+<5> Create the application's `GraphQL` engine
+endif::env-github[]
+
+So far, so good.
+Now how does one implement a data fetcher?
+
+ifdef::env-github[]
+link:src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java[GraphQLVerticle allTasks method]
+endif::env-github[]
+ifndef::env-github[]
+[source,java,role="collapsed"]
+.Java `src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java`
+----
+include::src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java[tag=allTasks]
+----
+endif::env-github[]
+
+The `allTasks` data fetcher gets the `uncompletedOnly` parameter from the `DataFetchingEnvironment`.
+Its value is either provided by the client or, as defined in the schema file, set to `true`.
+
+WARNING: Do not block the Vert.x event loop in your data fetchers.
+In this how-to, the data set is small and comes from memory, so it's safe to implement `allTasks` in a blocking fashion.
+When working with databases, caches or web services, make sure your data fetcher returns a `CompletionStage`.
+For further details, please refer to the https://vertx.io/docs/vertx-web-graphql/java/[The Vert.x Web GraphQL Handler documentation].
+
+The code for the `complete` mutation is not much different:
+
+ifdef::env-github[]
+link:src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java[GraphQLVerticle complete method]
+endif::env-github[]
+ifndef::env-github[]
+[source,java,role="collapsed"]
+.Java `src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java`
+----
+include::src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java[tag=complete]
+----
+endif::env-github[]
+
+It gets the `id` parameter provided by the client, then looks up for the corresponding task.
+If a task is found, it is updated and the mutation returns `true` to indicate success.
+
+Almost there!
+Now let's put things together in the verticle `start` method:
+
+ifdef::env-github[]
+link:src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java[GraphQLVerticle start method]
+endif::env-github[]
+ifndef::env-github[]
+[source,java,role="collapsed"]
+.Java `src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java`
+----
+include::src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java[tag=start]
+----
+<1> Create Vert.x Web GraphQL handler for the GraphQL-Java object
+<2> Define a Vert.x Web route for GraphQL queries and set the GraphQL handler
+endif::env-github[]
+
+== Running the application
+
+The `GraphQLVerticle` needs a `main` method:
+
+ifdef::env-github[]
+link:src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java[GraphQLVerticle main method]
+endif::env-github[]
+ifndef::env-github[]
+[source,java,role="collapsed"]
+.Java `src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java`
+----
+include::src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java[tag=main]
+----
+<1> Create a `Vertx` context
+<2> Deploy `GraphQLVerticle`
+
+Then you can run the application:
+
+* straight from your IDE or,
+* with Maven: `mvn compile exec:java`, or
+* with Gradle: `./gradlew run` (Linux, macOS) or `gradlew run` (Windows).
+
+=== Listing uncompleted tasks
+
+To list uncompleted tasks, http://localhost:8080/graphql?query=query+%7B+allTasks+%7B+id%2C+description+%7D+%7D[execute] the following query:
+
+[source,graphql]
+----
+query {
+  allTasks {
+    id
+    description
+  }
+}
+----
+
+You should see something like:
+
+[source,javascript]
+----
+{
+   "data" : {
+      "allTasks" : [
+         {
+            "id" : "e9bfd76b-097c-47df-be07-19baab67250d",
+            "description" : "Build awesome GraphQL server"
+         },
+         {
+            "id" : "07a704a8-2bb5-471f-a0c3-336957ccc35c",
+            "description" : "Learn GraphQL"
+         },
+         {
+            "id" : "55ffd0cb-cf4f-446e-881e-044071b2531e",
+            "description" : "Profit"
+         }
+      ]
+   }
+}
+----
+
+=== Completing a task
+
+To http://localhost:8080/graphql?query=mutation+%7B+complete%28id%3A+%2207a704a8-2bb5-471f-a0c3-336957ccc35c%22%29+%7D[complete] the _Learn GraphQL_ task, execute this query:
+
+[source,graphql]
+----
+mutation {
+  complete(id: "07a704a8-2bb5-471f-a0c3-336957ccc35c")
+}
+----
+
+NOTE: The `id` used in the link and query above must be adpated to the value generated by your application.
+
+After the task is completed, you will see:
+
+[source,javascript]
+----
+{
+   "data" : {
+      "complete" : true
+   }
+}
+----
+
+=== Retrieving all tasks
+
+If you need to http://localhost:8080/graphql?query=query+%7B+allTasks%28uncompletedOnly%3A+false%29+%7B+id%2C+description%2C+completed+%7D+%7D[retrieve all tasks], including those already completed, make sure to set the `uncompletedOnly` parameter to `false` in the `allTasks` query:
+
+[source,graphql]
+----
+query {
+  allTasks(uncompletedOnly: false) {
+    id
+    description
+    completed
+  }
+}
+----
+
+The expected output is:
+
+[source,javascript]
+----
+{
+   "data" : {
+      "allTasks" : [
+         {
+            "id" : "e9bfd76b-097c-47df-be07-19baab67250d",
+            "description" : "Build awesome GraphQL server",
+            "completed" : false
+         },
+         {
+            "id" : "07a704a8-2bb5-471f-a0c3-336957ccc35c",
+            "completed" : true,
+            "description" : "Learn GraphQL"
+         },
+         {
+            "description" : "Profit",
+            "completed" : false,
+            "id" : "55ffd0cb-cf4f-446e-881e-044071b2531e"
+         }
+      ]
+   }
+}
+----
+
+== Summary
+
+This document covered:
+
+. the Vert.x Web GraphQL Handler setup,
+. implementing simple query and mutation data fetchers.
+
+== See also
+
+- https://www.graphql-java.com/documentation/v12/[The GraphQL-Java documentation]
+- https://vertx.io/docs/vertx-web-graphql/java/[The Vert.x Web GraphQL Handler documentation]
