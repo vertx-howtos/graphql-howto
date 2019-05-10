@@ -1,0 +1,13 @@
+type Task {
+  id: String
+  description: String
+  completed: Boolean
+}
+
+type Query {
+  allTasks(uncompletedOnly: Boolean = true): [Task]
+}
+
+type Mutation {
+  complete(id: String!): Boolean
+}
