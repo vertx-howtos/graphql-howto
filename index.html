@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Implementing a GraphQL server | Eclipse Vert.x how-to</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr"
+    crossorigin="anonymous">
+  <link rel="icon" type="image/svg+xml" href="assets/images/vertx-square.svg">
+</head>
+
+<body>
+
+
+<nav class="navbar navbar-expand-lg sticky-top navbar-dark bg-purple mb-4 shadow-sm">
+  <a class="navbar-brand" href="/">
+    <img src="assets/images/vertx-square.svg" alt="Vert.x" width="40" height="40">
+    &nbsp; Eclipse Vert.x how-to
+  </a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav"
+    aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="navbarNav">
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <a class="nav-link" href="https://vertx.io/docs/"><i class="fas fa-lg fa-drafting-compass"></i> Vert.x docs</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="https://github.com/vertx-howtos/graphql-howto"><i class="fab fa-lg fa-github"></i> Source
+          code</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="https://github.com/vertx-howtos/graphql-howto/edit/master/README.adoc"><i
+            class="far fa-lg fa-edit"></i>
+          Edit this</a>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="row">
+    <div class="col">
+      <h1>Implementing a GraphQL server</h1>
+      <div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>This document will show you how to implement a GraphQL server.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="what-you-will-build">What you will build</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>You will build a GraphQL server to manage your personal tasks (a.k.a. the todo list).</p>
+</div>
+<div class="paragraph">
+<p>The application consists in a few files:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>the <code>tasks.graphqls</code> schema file</p>
+</li>
+<li>
+<p>the <code>Task</code> data class</p>
+</li>
+<li>
+<p>the <code>GraphQLVerticle</code> class</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="what-you-need">What you need</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>A text editor or IDE</p>
+</li>
+<li>
+<p>Java 8 higher</p>
+</li>
+<li>
+<p>Maven or Gradle</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="create-a-project">Create a project</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The code of this project contains Maven and Gradle build files that are functionally equivalent.</p>
+</div>
+<div class="sect2">
+<h3 id="using-maven">Using Maven</h3>
+<div class="paragraph">
+<p>Here is the content of the <code>pom.xml</code> file you should be using:</p>
+</div>
+<div class="listingblock collapsed">
+<div class="title">Maven <code>pom.xml</code></div>
+<div class="content">
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="xml"><span style="color: #999999;font-weight: bold">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span style="color: #000080">&lt;project</span> <span style="color: #008080">xmlns=</span><span style="color: #d14">"http://maven.apache.org/POM/4.0.0"</span>
+         <span style="color: #008080">xmlns:xsi=</span><span style="color: #d14">"http://www.w3.org/2001/XMLSchema-instance"</span>
+         <span style="color: #008080">xsi:schemaLocation=</span><span style="color: #d14">"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"</span><span style="color: #000080">&gt;</span>
+
+  <span style="color: #000080">&lt;modelVersion&gt;</span>4.0.0<span style="color: #000080">&lt;/modelVersion&gt;</span>
+
+  <span style="color: #000080">&lt;groupId&gt;</span>io.vertx.howtos<span style="color: #000080">&lt;/groupId&gt;</span>
+  <span style="color: #000080">&lt;artifactId&gt;</span>graphql-howto<span style="color: #000080">&lt;/artifactId&gt;</span>
+  <span style="color: #000080">&lt;version&gt;</span>1.0-SNAPSHOT<span style="color: #000080">&lt;/version&gt;</span>
+
+  <span style="color: #000080">&lt;properties&gt;</span>
+    <span style="color: #000080">&lt;vertx.version&gt;</span>3.7.0<span style="color: #000080">&lt;/vertx.version&gt;</span>
+    <span style="color: #000080">&lt;maven.compiler.source&gt;</span>1.8<span style="color: #000080">&lt;/maven.compiler.source&gt;</span>
+    <span style="color: #000080">&lt;maven.compiler.target&gt;</span>1.8<span style="color: #000080">&lt;/maven.compiler.target&gt;</span>
+  <span style="color: #000080">&lt;/properties&gt;</span>
+
+  <span style="color: #000080">&lt;dependencyManagement&gt;</span>
+    <span style="color: #000080">&lt;dependencies&gt;</span>
+      <span style="color: #000080">&lt;dependency&gt;</span>
+        <span style="color: #000080">&lt;groupId&gt;</span>io.vertx<span style="color: #000080">&lt;/groupId&gt;</span>
+        <span style="color: #000080">&lt;artifactId&gt;</span>vertx-stack-depchain<span style="color: #000080">&lt;/artifactId&gt;</span>
+        <span style="color: #000080">&lt;version&gt;</span>${vertx.version}<span style="color: #000080">&lt;/version&gt;</span>
+        <span style="color: #000080">&lt;type&gt;</span>pom<span style="color: #000080">&lt;/type&gt;</span>
+        <span style="color: #000080">&lt;scope&gt;</span>import<span style="color: #000080">&lt;/scope&gt;</span>
+      <span style="color: #000080">&lt;/dependency&gt;</span>
+    <span style="color: #000080">&lt;/dependencies&gt;</span>
+  <span style="color: #000080">&lt;/dependencyManagement&gt;</span>
+
+  <span style="color: #000080">&lt;dependencies&gt;</span>
+    <span style="color: #000080">&lt;dependency&gt;</span>
+      <span style="color: #000080">&lt;groupId&gt;</span>io.vertx<span style="color: #000080">&lt;/groupId&gt;</span>
+      <span style="color: #000080">&lt;artifactId&gt;</span>vertx-web-graphql<span style="color: #000080">&lt;/artifactId&gt;</span>
+    <span style="color: #000080">&lt;/dependency&gt;</span>
+  <span style="color: #000080">&lt;/dependencies&gt;</span>
+
+  <span style="color: #000080">&lt;build&gt;</span>
+    <span style="color: #000080">&lt;plugins&gt;</span>
+      <span style="color: #000080">&lt;plugin&gt;</span>
+        <span style="color: #000080">&lt;groupId&gt;</span>org.codehaus.mojo<span style="color: #000080">&lt;/groupId&gt;</span>
+        <span style="color: #000080">&lt;artifactId&gt;</span>exec-maven-plugin<span style="color: #000080">&lt;/artifactId&gt;</span>
+        <span style="color: #000080">&lt;version&gt;</span>1.5.0<span style="color: #000080">&lt;/version&gt;</span>
+        <span style="color: #000080">&lt;configuration&gt;</span>
+          <span style="color: #000080">&lt;mainClass&gt;</span>io.vertx.howtos.graphql.GraphQLVerticle<span style="color: #000080">&lt;/mainClass&gt;</span>
+        <span style="color: #000080">&lt;/configuration&gt;</span>
+      <span style="color: #000080">&lt;/plugin&gt;</span>
+    <span style="color: #000080">&lt;/plugins&gt;</span>
+  <span style="color: #000080">&lt;/build&gt;</span>
+
+<span style="color: #000080">&lt;/project&gt;</span></code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="using-gradle">Using Gradle</h3>
+<div class="paragraph">
+<p>Assuming you use Gradle with the Kotlin DSL, here is what your <code>build.gradle.kts</code> file should look like:</p>
+</div>
+<div class="listingblock collapsed">
+<div class="title">Gradle <code>build.gradle.kts</code></div>
+<div class="content">
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="kotlin"><span style="background-color: #f8f8f8">plugins</span> <span style="background-color: #f8f8f8">{</span>
+  <span style="background-color: #f8f8f8">java</span>
+  <span style="background-color: #f8f8f8">application</span>
+<span style="background-color: #f8f8f8">}</span>
+
+<span style="background-color: #f8f8f8">repositories</span> <span style="background-color: #f8f8f8">{</span>
+  <span style="background-color: #f8f8f8">mavenCentral</span><span style="background-color: #f8f8f8">()</span>
+<span style="background-color: #f8f8f8">}</span>
+
+<span style="background-color: #f8f8f8">dependencies</span> <span style="background-color: #f8f8f8">{</span>
+  <span style="color: #000000;font-weight: bold">val</span> <span style="background-color: #f8f8f8">vertxVersion</span> <span style="background-color: #f8f8f8">=</span> <span style="color: #d14">"3.7.0"</span>
+  <span style="background-color: #f8f8f8">implementation</span><span style="background-color: #f8f8f8">(</span><span style="color: #d14">"io.vertx:vertx-web-graphql:${vertxVersion}"</span><span style="background-color: #f8f8f8">)</span>
+<span style="background-color: #f8f8f8">}</span>
+
+<span style="background-color: #f8f8f8">application</span> <span style="background-color: #f8f8f8">{</span>
+  <span style="background-color: #f8f8f8">mainClassName</span> <span style="background-color: #f8f8f8">=</span> <span style="color: #d14">"io.vertx.howtos.graphql.GraphQLVerticle"</span>
+<span style="background-color: #f8f8f8">}</span>
+
+<span style="background-color: #f8f8f8">tasks</span><span style="background-color: #f8f8f8">.</span><span style="background-color: #f8f8f8">wrapper</span> <span style="background-color: #f8f8f8">{</span>
+  <span style="background-color: #f8f8f8">gradleVersion</span> <span style="background-color: #f8f8f8">=</span> <span style="color: #d14">"5.2"</span>
+<span style="background-color: #f8f8f8">}</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="managing-tasks-with-vert-x-web-and-graphql">Managing tasks with Vert.x Web and GraphQL</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="creating-the-schema">Creating the schema</h3>
+<div class="paragraph">
+<p>First things first, let&#8217;s create a GraphQL schema for the task management app:</p>
+</div>
+<div class="listingblock">
+<div class="title">GraphQL Schema <code>src/main/resources/tasks.graphqls</code></div>
+<div class="content">
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code>type Task {
+  id: String
+  description: String
+  completed: Boolean
+}
+
+type Query {
+  allTasks(uncompletedOnly: Boolean = true): [Task]
+}
+
+type Mutation {
+  complete(id: String!): Boolean
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The schema defines:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>the <code>Task</code> <em>type</em> with 3 fields: <code>id</code>, <code>description</code> and <code>completed</code></p>
+</li>
+<li>
+<p>the <code>allTasks</code> <em>query</em> that returns an array of tasks and optionally takes a parameter <code>uncompletedOnly</code> (defaults to <code>true</code>)</p>
+</li>
+<li>
+<p>the <code>complete</code> <em>mutation</em> that takes the task <code>id</code> as parameter and returns a <em>boolean</em> indicating whether the operation was successful</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="implementing-the-server">Implementing the server</h3>
+<div class="paragraph">
+<p>In the application, tasks will be modeled by the <code>Task</code> class:</p>
+</div>
+<div class="listingblock collapsed">
+<div class="title">Java <code>src/main/java/io/vertx/howtos/graphql/Task.java</code></div>
+<div class="content">
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="java"><span style="color: #000000;font-weight: bold">package</span> <span style="background-color: #f8f8f8">io</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">vertx</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">howtos</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">graphql</span><span style="color: #000000;font-weight: bold">;</span>
+
+<span style="color: #000000;font-weight: bold">import</span> <span style="color: #555555">java.util.UUID</span><span style="color: #000000;font-weight: bold">;</span>
+
+<span style="color: #000000;font-weight: bold">public</span> <span style="color: #000000;font-weight: bold">class</span> <span style="color: #445588;font-weight: bold">Task</span> <span style="color: #000000;font-weight: bold">{</span>
+
+  <span style="color: #000000;font-weight: bold">public</span> <span style="background-color: #f8f8f8">String</span> <span style="background-color: #f8f8f8">id</span><span style="color: #000000;font-weight: bold">;</span>
+  <span style="color: #000000;font-weight: bold">public</span> <span style="background-color: #f8f8f8">String</span> <span style="background-color: #f8f8f8">description</span><span style="color: #000000;font-weight: bold">;</span>
+  <span style="color: #000000;font-weight: bold">public</span> <span style="color: #445588;font-weight: bold">boolean</span> <span style="background-color: #f8f8f8">completed</span><span style="color: #000000;font-weight: bold">;</span>
+
+  <span style="color: #000000;font-weight: bold">public</span> <span style="color: #990000;font-weight: bold">Task</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">String</span> <span style="background-color: #f8f8f8">description</span><span style="color: #000000;font-weight: bold">)</span> <span style="color: #000000;font-weight: bold">{</span>
+    <span style="background-color: #f8f8f8">id</span> <span style="color: #000000;font-weight: bold">=</span> <span style="background-color: #f8f8f8">UUID</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">randomUUID</span><span style="color: #000000;font-weight: bold">().</span><span style="color: #008080">toString</span><span style="color: #000000;font-weight: bold">();</span> // <b class="conum">(1)</b>
+    <span style="color: #000000;font-weight: bold">this</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">description</span> <span style="color: #000000;font-weight: bold">=</span> <span style="background-color: #f8f8f8">description</span><span style="color: #000000;font-weight: bold">;</span>
+  <span style="color: #000000;font-weight: bold">}</span>
+<span style="color: #000000;font-weight: bold">}</span></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>a random identifier is assigned when a <code>Task</code> instance is created</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+The <code>Task</code> class field names must match those of the corresponding GraphQL schema type.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>On startup, we shall create a few items:</p>
+</div>
+<div class="listingblock collapsed">
+<div class="title">Java <code>src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java</code></div>
+<div class="content">
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="java">  <span style="color: #000000;font-weight: bold">private</span> <span style="background-color: #f8f8f8">Map</span><span style="color: #000000;font-weight: bold">&lt;</span><span style="background-color: #f8f8f8">String</span><span style="color: #000000;font-weight: bold">,</span> <span style="background-color: #f8f8f8">Task</span><span style="color: #000000;font-weight: bold">&gt;</span> <span style="color: #990000;font-weight: bold">initData</span><span style="color: #000000;font-weight: bold">()</span> <span style="color: #000000;font-weight: bold">{</span>
+    <span style="background-color: #f8f8f8">Stream</span><span style="color: #000000;font-weight: bold">&lt;</span><span style="background-color: #f8f8f8">Task</span><span style="color: #000000;font-weight: bold">&gt;</span> <span style="background-color: #f8f8f8">stream</span> <span style="color: #000000;font-weight: bold">=</span> <span style="background-color: #f8f8f8">Stream</span><span style="color: #000000;font-weight: bold">.&lt;</span><span style="background-color: #f8f8f8">Task</span><span style="color: #000000;font-weight: bold">&gt;</span><span style="background-color: #f8f8f8">builder</span><span style="color: #000000;font-weight: bold">()</span>
+      <span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">add</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #000000;font-weight: bold">new</span> <span style="background-color: #f8f8f8">Task</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #d14">"Learn GraphQL"</span><span style="color: #000000;font-weight: bold">))</span>
+      <span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">add</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #000000;font-weight: bold">new</span> <span style="background-color: #f8f8f8">Task</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #d14">"Build awesome GraphQL server"</span><span style="color: #000000;font-weight: bold">))</span>
+      <span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">add</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #000000;font-weight: bold">new</span> <span style="background-color: #f8f8f8">Task</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #d14">"Profit"</span><span style="color: #000000;font-weight: bold">))</span>
+      <span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">build</span><span style="color: #000000;font-weight: bold">();</span>
+
+    <span style="color: #000000;font-weight: bold">return</span> <span style="background-color: #f8f8f8">stream</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">collect</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">toMap</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">task</span> <span style="color: #000000;font-weight: bold">-&gt;</span> <span style="background-color: #f8f8f8">task</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">id</span><span style="color: #000000;font-weight: bold">,</span> <span style="background-color: #f8f8f8">task</span> <span style="color: #000000;font-weight: bold">-&gt;</span> <span style="background-color: #f8f8f8">task</span><span style="color: #000000;font-weight: bold">));</span>
+  <span style="color: #000000;font-weight: bold">}</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then the <a href="https://www.graphql-java.com/">GraphQL-Java</a> engine must be setup:</p>
+</div>
+<div class="listingblock collapsed">
+<div class="title">Java <code>src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java</code></div>
+<div class="content">
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="java">  <span style="color: #000000;font-weight: bold">private</span> <span style="background-color: #f8f8f8">GraphQL</span> <span style="color: #990000;font-weight: bold">setupGraphQL</span><span style="color: #000000;font-weight: bold">()</span> <span style="color: #000000;font-weight: bold">{</span>
+    <span style="background-color: #f8f8f8">String</span> <span style="background-color: #f8f8f8">schema</span> <span style="color: #000000;font-weight: bold">=</span> <span style="background-color: #f8f8f8">vertx</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">fileSystem</span><span style="color: #000000;font-weight: bold">().</span><span style="color: #008080">readFileBlocking</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #d14">"tasks.graphqls"</span><span style="color: #000000;font-weight: bold">).</span><span style="color: #008080">toString</span><span style="color: #000000;font-weight: bold">();</span> // <b class="conum">(1)</b>
+
+    <span style="background-color: #f8f8f8">SchemaParser</span> <span style="background-color: #f8f8f8">schemaParser</span> <span style="color: #000000;font-weight: bold">=</span> <span style="color: #000000;font-weight: bold">new</span> <span style="background-color: #f8f8f8">SchemaParser</span><span style="color: #000000;font-weight: bold">();</span>
+    <span style="background-color: #f8f8f8">TypeDefinitionRegistry</span> <span style="background-color: #f8f8f8">typeDefinitionRegistry</span> <span style="color: #000000;font-weight: bold">=</span> <span style="background-color: #f8f8f8">schemaParser</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">parse</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">schema</span><span style="color: #000000;font-weight: bold">);</span> // <b class="conum">(2)</b>
+
+    <span style="background-color: #f8f8f8">RuntimeWiring</span> <span style="background-color: #f8f8f8">runtimeWiring</span> <span style="color: #000000;font-weight: bold">=</span> <span style="background-color: #f8f8f8">newRuntimeWiring</span><span style="color: #000000;font-weight: bold">()</span> // <b class="conum">(3)</b>
+      <span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">type</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #d14">"Query"</span><span style="color: #000000;font-weight: bold">,</span> <span style="background-color: #f8f8f8">builder</span> <span style="color: #000000;font-weight: bold">-&gt;</span> <span style="background-color: #f8f8f8">builder</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">dataFetcher</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #d14">"allTasks"</span><span style="color: #000000;font-weight: bold">,</span> <span style="color: #000000;font-weight: bold">this</span><span style="color: #000000;font-weight: bold">::</span><span style="background-color: #f8f8f8">allTasks</span><span style="color: #000000;font-weight: bold">))</span>
+      <span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">type</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #d14">"Mutation"</span><span style="color: #000000;font-weight: bold">,</span> <span style="background-color: #f8f8f8">builder</span> <span style="color: #000000;font-weight: bold">-&gt;</span> <span style="background-color: #f8f8f8">builder</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">dataFetcher</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #d14">"complete"</span><span style="color: #000000;font-weight: bold">,</span> <span style="color: #000000;font-weight: bold">this</span><span style="color: #000000;font-weight: bold">::</span><span style="background-color: #f8f8f8">complete</span><span style="color: #000000;font-weight: bold">))</span>
+      <span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">build</span><span style="color: #000000;font-weight: bold">();</span>
+
+    <span style="background-color: #f8f8f8">SchemaGenerator</span> <span style="background-color: #f8f8f8">schemaGenerator</span> <span style="color: #000000;font-weight: bold">=</span> <span style="color: #000000;font-weight: bold">new</span> <span style="background-color: #f8f8f8">SchemaGenerator</span><span style="color: #000000;font-weight: bold">();</span>
+    <span style="background-color: #f8f8f8">GraphQLSchema</span> <span style="background-color: #f8f8f8">graphQLSchema</span> <span style="color: #000000;font-weight: bold">=</span> <span style="background-color: #f8f8f8">schemaGenerator</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">makeExecutableSchema</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">typeDefinitionRegistry</span><span style="color: #000000;font-weight: bold">,</span> <span style="background-color: #f8f8f8">runtimeWiring</span><span style="color: #000000;font-weight: bold">);</span> // <b class="conum">(4)</b>
+
+    <span style="color: #000000;font-weight: bold">return</span> <span style="background-color: #f8f8f8">GraphQL</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">newGraphQL</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">graphQLSchema</span><span style="color: #000000;font-weight: bold">).</span><span style="color: #008080">build</span><span style="color: #000000;font-weight: bold">();</span> // <b class="conum">(5)</b>
+  <span style="color: #000000;font-weight: bold">}</span></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Read the schema file from classpath</p>
+</li>
+<li>
+<p><code>TypeDefinitionRegistry</code> is the GraphQL-Java runtime equivalent to the schema file definitions</p>
+</li>
+<li>
+<p><code>RuntimeWiring</code> tells GraphQL-Java how to resolve types and fetch data</p>
+</li>
+<li>
+<p><code>GraphQLSchema</code> connects the runtime type definitions with the type resolvers and data fetchers</p>
+</li>
+<li>
+<p>Create the application&#8217;s <code>GraphQL</code> engine</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>So far, so good.
+Now how does one implement a data fetcher?</p>
+</div>
+<div class="listingblock collapsed">
+<div class="title">Java <code>src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java</code></div>
+<div class="content">
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="java">  <span style="color: #000000;font-weight: bold">private</span> <span style="background-color: #f8f8f8">List</span><span style="color: #000000;font-weight: bold">&lt;</span><span style="background-color: #f8f8f8">Task</span><span style="color: #000000;font-weight: bold">&gt;</span> <span style="color: #990000;font-weight: bold">allTasks</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">DataFetchingEnvironment</span> <span style="background-color: #f8f8f8">env</span><span style="color: #000000;font-weight: bold">)</span> <span style="color: #000000;font-weight: bold">{</span>
+    <span style="color: #445588;font-weight: bold">boolean</span> <span style="background-color: #f8f8f8">uncompletedOnly</span> <span style="color: #000000;font-weight: bold">=</span> <span style="background-color: #f8f8f8">env</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">getArgument</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #d14">"uncompletedOnly"</span><span style="color: #000000;font-weight: bold">);</span>
+    <span style="color: #000000;font-weight: bold">return</span> <span style="background-color: #f8f8f8">tasks</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">values</span><span style="color: #000000;font-weight: bold">().</span><span style="color: #008080">stream</span><span style="color: #000000;font-weight: bold">()</span>
+      <span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">filter</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">task</span> <span style="color: #000000;font-weight: bold">-&gt;</span> <span style="color: #000000;font-weight: bold">!</span><span style="background-color: #f8f8f8">uncompletedOnly</span> <span style="color: #000000;font-weight: bold">||</span> <span style="color: #000000;font-weight: bold">!</span><span style="background-color: #f8f8f8">task</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">completed</span><span style="color: #000000;font-weight: bold">)</span>
+      <span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">collect</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">toList</span><span style="color: #000000;font-weight: bold">());</span>
+  <span style="color: #000000;font-weight: bold">}</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>allTasks</code> data fetcher gets the <code>uncompletedOnly</code> parameter from the <code>DataFetchingEnvironment</code>.
+Its value is either provided by the client or, as defined in the schema file, set to <code>true</code>.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+Do not block the Vert.x event loop in your data fetchers.
+In this how-to, the data set is small and comes from memory, so it&#8217;s safe to implement <code>allTasks</code> in a blocking fashion.
+When working with databases, caches or web services, make sure your data fetcher returns a <code>CompletionStage</code>.
+For further details, please refer to the <a href="https://vertx.io/docs/vertx-web-graphql/java/">The Vert.x Web GraphQL Handler documentation</a>.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The code for the <code>complete</code> mutation is not much different:</p>
+</div>
+<div class="listingblock collapsed">
+<div class="title">Java <code>src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java</code></div>
+<div class="content">
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="java">  <span style="color: #000000;font-weight: bold">private</span> <span style="color: #445588;font-weight: bold">boolean</span> <span style="color: #990000;font-weight: bold">complete</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">DataFetchingEnvironment</span> <span style="background-color: #f8f8f8">env</span><span style="color: #000000;font-weight: bold">)</span> <span style="color: #000000;font-weight: bold">{</span>
+    <span style="background-color: #f8f8f8">String</span> <span style="background-color: #f8f8f8">id</span> <span style="color: #000000;font-weight: bold">=</span> <span style="background-color: #f8f8f8">env</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">getArgument</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #d14">"id"</span><span style="color: #000000;font-weight: bold">);</span>
+    <span style="background-color: #f8f8f8">Task</span> <span style="background-color: #f8f8f8">task</span> <span style="color: #000000;font-weight: bold">=</span> <span style="background-color: #f8f8f8">tasks</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">get</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">id</span><span style="color: #000000;font-weight: bold">);</span>
+    <span style="color: #000000;font-weight: bold">if</span> <span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">task</span> <span style="color: #000000;font-weight: bold">==</span> <span style="color: #000000;font-weight: bold">null</span><span style="color: #000000;font-weight: bold">)</span> <span style="color: #000000;font-weight: bold">{</span>
+      <span style="color: #000000;font-weight: bold">return</span> <span style="color: #000000;font-weight: bold">false</span><span style="color: #000000;font-weight: bold">;</span>
+    <span style="color: #000000;font-weight: bold">}</span>
+    <span style="background-color: #f8f8f8">task</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">completed</span> <span style="color: #000000;font-weight: bold">=</span> <span style="color: #000000;font-weight: bold">true</span><span style="color: #000000;font-weight: bold">;</span>
+    <span style="color: #000000;font-weight: bold">return</span> <span style="color: #000000;font-weight: bold">true</span><span style="color: #000000;font-weight: bold">;</span>
+  <span style="color: #000000;font-weight: bold">}</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It gets the <code>id</code> parameter provided by the client, then looks up for the corresponding task.
+If a task is found, it is updated and the mutation returns <code>true</code> to indicate success.</p>
+</div>
+<div class="paragraph">
+<p>Almost there!
+Now let&#8217;s put things together in the verticle <code>start</code> method:</p>
+</div>
+<div class="listingblock collapsed">
+<div class="title">Java <code>src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java</code></div>
+<div class="content">
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="java">  <span style="color: #000000;font-weight: bold">private</span> <span style="background-color: #f8f8f8">Map</span><span style="color: #000000;font-weight: bold">&lt;</span><span style="background-color: #f8f8f8">String</span><span style="color: #000000;font-weight: bold">,</span> <span style="background-color: #f8f8f8">Task</span><span style="color: #000000;font-weight: bold">&gt;</span> <span style="background-color: #f8f8f8">tasks</span><span style="color: #000000;font-weight: bold">;</span>
+
+  <span style="color: #3c5d5d;font-weight: bold">@Override</span>
+  <span style="color: #000000;font-weight: bold">public</span> <span style="color: #445588;font-weight: bold">void</span> <span style="color: #990000;font-weight: bold">start</span><span style="color: #000000;font-weight: bold">()</span> <span style="color: #000000;font-weight: bold">{</span>
+    <span style="background-color: #f8f8f8">tasks</span> <span style="color: #000000;font-weight: bold">=</span> <span style="background-color: #f8f8f8">initData</span><span style="color: #000000;font-weight: bold">();</span>
+
+    <span style="background-color: #f8f8f8">GraphQL</span> <span style="background-color: #f8f8f8">graphQL</span> <span style="color: #000000;font-weight: bold">=</span> <span style="background-color: #f8f8f8">setupGraphQL</span><span style="color: #000000;font-weight: bold">();</span>
+    <span style="background-color: #f8f8f8">GraphQLHandler</span> <span style="background-color: #f8f8f8">graphQLHandler</span> <span style="color: #000000;font-weight: bold">=</span> <span style="background-color: #f8f8f8">GraphQLHandler</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">create</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">graphQL</span><span style="color: #000000;font-weight: bold">);</span> // <b class="conum">(1)</b>
+
+    <span style="background-color: #f8f8f8">Router</span> <span style="background-color: #f8f8f8">router</span> <span style="color: #000000;font-weight: bold">=</span> <span style="background-color: #f8f8f8">Router</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">router</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">vertx</span><span style="color: #000000;font-weight: bold">);</span>
+    <span style="background-color: #f8f8f8">router</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">route</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #d14">"/graphql"</span><span style="color: #000000;font-weight: bold">).</span><span style="color: #008080">handler</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">graphQLHandler</span><span style="color: #000000;font-weight: bold">);</span> // <b class="conum">(2)</b>
+
+    <span style="background-color: #f8f8f8">vertx</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">createHttpServer</span><span style="color: #000000;font-weight: bold">()</span>
+      <span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">requestHandler</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">router</span><span style="color: #000000;font-weight: bold">)</span>
+      <span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">listen</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #009999">8080</span><span style="color: #000000;font-weight: bold">);</span>
+  <span style="color: #000000;font-weight: bold">}</span></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Create Vert.x Web GraphQL handler for the GraphQL-Java object</p>
+</li>
+<li>
+<p>Define a Vert.x Web route for GraphQL queries and set the GraphQL handler</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="running-the-application">Running the application</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The <code>GraphQLVerticle</code> needs a <code>main</code> method:</p>
+</div>
+<div class="listingblock collapsed">
+<div class="title">Java <code>src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java</code></div>
+<div class="content">
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="java">  <span style="color: #000000;font-weight: bold">public</span> <span style="color: #000000;font-weight: bold">static</span> <span style="color: #445588;font-weight: bold">void</span> <span style="color: #990000;font-weight: bold">main</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">String</span><span style="color: #000000;font-weight: bold">[]</span> <span style="background-color: #f8f8f8">args</span><span style="color: #000000;font-weight: bold">)</span> <span style="color: #000000;font-weight: bold">{</span>
+    <span style="background-color: #f8f8f8">Vertx</span> <span style="background-color: #f8f8f8">vertx</span> <span style="color: #000000;font-weight: bold">=</span> <span style="background-color: #f8f8f8">Vertx</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">vertx</span><span style="color: #000000;font-weight: bold">();</span> // <b class="conum">(1)</b>
+    <span style="background-color: #f8f8f8">vertx</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">deployVerticle</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #000000;font-weight: bold">new</span> <span style="background-color: #f8f8f8">GraphQLVerticle</span><span style="color: #000000;font-weight: bold">());</span> // <b class="conum">(2)</b>
+  <span style="color: #000000;font-weight: bold">}</span></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Create a <code>Vertx</code> context</p>
+</li>
+<li>
+<p>Deploy <code>GraphQLVerticle</code></p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Then you can run the application:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>straight from your IDE or,</p>
+</li>
+<li>
+<p>with Maven: <code>mvn compile exec:java</code>, or</p>
+</li>
+<li>
+<p>with Gradle: <code>./gradlew run</code> (Linux, macOS) or <code>gradlew run</code> (Windows).</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The following examples use the <a href="https://httpie.org/">HTTPie</a> command line HTTP client.
+Please refer to the <a href="https://httpie.org/doc#installation">installation</a> documentation if you don&#8217;t have it installed on your system yet.</p>
+</div>
+<div class="sect2">
+<h3 id="listing-uncompleted-tasks">Listing uncompleted tasks</h3>
+<div class="paragraph">
+<p>To list uncompleted tasks, open your terminal and execute this:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="shell">http :8080/graphql <span style="color: #008080">query</span><span style="color: #000000;font-weight: bold">==</span><span style="color: #d14">'
+query {
+  allTasks {
+    id,
+    description
+  }
+}'</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You should see something like:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="javascript"><span style="background-color: #f8f8f8">{</span>
+    <span style="color: #d14">"data"</span><span style="background-color: #f8f8f8">:</span> <span style="background-color: #f8f8f8">{</span>
+        <span style="color: #d14">"allTasks"</span><span style="background-color: #f8f8f8">:</span> <span style="background-color: #f8f8f8">[</span>
+            <span style="background-color: #f8f8f8">{</span>
+                <span style="color: #d14">"description"</span><span style="background-color: #f8f8f8">:</span> <span style="color: #d14">"Learn GraphQL"</span><span style="background-color: #f8f8f8">,</span>
+                <span style="color: #d14">"id"</span><span style="background-color: #f8f8f8">:</span> <span style="color: #d14">"4a9f53fd-584f-4169-b725-6b320043db8b"</span>
+            <span style="background-color: #f8f8f8">},</span>
+            <span style="background-color: #f8f8f8">{</span>
+                <span style="color: #d14">"description"</span><span style="background-color: #f8f8f8">:</span> <span style="color: #d14">"Profit"</span><span style="background-color: #f8f8f8">,</span>
+                <span style="color: #d14">"id"</span><span style="background-color: #f8f8f8">:</span> <span style="color: #d14">"03770db5-a8ad-44b3-ad6e-6fe979015088"</span>
+            <span style="background-color: #f8f8f8">},</span>
+            <span style="background-color: #f8f8f8">{</span>
+                <span style="color: #d14">"description"</span><span style="background-color: #f8f8f8">:</span> <span style="color: #d14">"Build awesome GraphQL server"</span><span style="background-color: #f8f8f8">,</span>
+                <span style="color: #d14">"id"</span><span style="background-color: #f8f8f8">:</span> <span style="color: #d14">"6b000f72-8aa9-4f4e-9539-5da2ab11cd94"</span>
+            <span style="background-color: #f8f8f8">}</span>
+        <span style="background-color: #f8f8f8">]</span>
+    <span style="background-color: #f8f8f8">}</span>
+<span style="background-color: #f8f8f8">}</span></code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="completing-a-task">Completing a task</h3>
+<div class="paragraph">
+<p>To complete the <em>Learn GraphQL</em> task:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="shell">http :8080/graphql <span style="color: #008080">query</span><span style="color: #000000;font-weight: bold">==</span><span style="color: #d14">'
+mutation {
+  complete(id: "4a9f53fd-584f-4169-b725-6b320043db8b")
+}'</span></code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The <code>id</code> used in the query above must be changed to the value generated by your application.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>After the task is completed, you will see:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="javascript"><span style="background-color: #f8f8f8">{</span>
+    <span style="color: #d14">"data"</span><span style="background-color: #f8f8f8">:</span> <span style="background-color: #f8f8f8">{</span>
+        <span style="color: #d14">"complete"</span><span style="background-color: #f8f8f8">:</span> <span style="color: #000000;font-weight: bold">true</span>
+    <span style="background-color: #f8f8f8">}</span>
+<span style="background-color: #f8f8f8">}</span></code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="retrieving-all-tasks">Retrieving all tasks</h3>
+<div class="paragraph">
+<p>If you need to retrieve all tasks, including those already completed, make sure to set the <code>uncompletedOnly</code> parameter to <code>false</code> in the <code>allTasks</code> query:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="shell">http :8080/graphql <span style="color: #008080">query</span><span style="color: #000000;font-weight: bold">==</span><span style="color: #d14">'
+query {
+  allTasks(uncompletedOnly: false) {
+    id
+    description
+    completed
+  }
+}'</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The expected output is:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="javascript"><span style="background-color: #f8f8f8">{</span>
+    <span style="color: #d14">"data"</span><span style="background-color: #f8f8f8">:</span> <span style="background-color: #f8f8f8">{</span>
+        <span style="color: #d14">"allTasks"</span><span style="background-color: #f8f8f8">:</span> <span style="background-color: #f8f8f8">[</span>
+            <span style="background-color: #f8f8f8">{</span>
+                <span style="color: #d14">"completed"</span><span style="background-color: #f8f8f8">:</span> <span style="color: #000000;font-weight: bold">true</span><span style="background-color: #f8f8f8">,</span>
+                <span style="color: #d14">"description"</span><span style="background-color: #f8f8f8">:</span> <span style="color: #d14">"Learn GraphQL"</span><span style="background-color: #f8f8f8">,</span>
+                <span style="color: #d14">"id"</span><span style="background-color: #f8f8f8">:</span> <span style="color: #d14">"4a9f53fd-584f-4169-b725-6b320043db8b"</span>
+            <span style="background-color: #f8f8f8">},</span>
+            <span style="background-color: #f8f8f8">{</span>
+                <span style="color: #d14">"completed"</span><span style="background-color: #f8f8f8">:</span> <span style="color: #000000;font-weight: bold">false</span><span style="background-color: #f8f8f8">,</span>
+                <span style="color: #d14">"description"</span><span style="background-color: #f8f8f8">:</span> <span style="color: #d14">"Profit"</span><span style="background-color: #f8f8f8">,</span>
+                <span style="color: #d14">"id"</span><span style="background-color: #f8f8f8">:</span> <span style="color: #d14">"03770db5-a8ad-44b3-ad6e-6fe979015088"</span>
+            <span style="background-color: #f8f8f8">},</span>
+            <span style="background-color: #f8f8f8">{</span>
+                <span style="color: #d14">"completed"</span><span style="background-color: #f8f8f8">:</span> <span style="color: #000000;font-weight: bold">false</span><span style="background-color: #f8f8f8">,</span>
+                <span style="color: #d14">"description"</span><span style="background-color: #f8f8f8">:</span> <span style="color: #d14">"Build awesome GraphQL server"</span><span style="background-color: #f8f8f8">,</span>
+                <span style="color: #d14">"id"</span><span style="background-color: #f8f8f8">:</span> <span style="color: #d14">"6b000f72-8aa9-4f4e-9539-5da2ab11cd94"</span>
+            <span style="background-color: #f8f8f8">}</span>
+        <span style="background-color: #f8f8f8">]</span>
+    <span style="background-color: #f8f8f8">}</span>
+<span style="background-color: #f8f8f8">}</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="summary">Summary</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This document covered:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>the Vert.x Web GraphQL Handler setup,</p>
+</li>
+<li>
+<p>implementing simple query and mutation data fetchers.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="see-also">See also</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.graphql-java.com/documentation/v12/">The GraphQL-Java documentation</a></p>
+</li>
+<li>
+<p><a href="https://vertx.io/docs/vertx-web-graphql/java/">The Vert.x Web GraphQL Handler documentation</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <!-- Sharingbutton Facebook -->
+<a class="resp-sharing-button__link" href="https://facebook.com/sharer/sharer.php?u=https://vertx-howtos.github.io/graphql-howto" target="_blank"
+    rel="noopener" aria-label="">
+    <div class="resp-sharing-button resp-sharing-button--facebook resp-sharing-button--small">
+        <div aria-hidden="true" class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path
+                    d="M18.77 7.46H14.5v-1.9c0-.9.6-1.1 1-1.1h3V.5h-4.33C10.24.5 9.5 3.44 9.5 5.32v2.15h-3v4h3v12h5v-12h3.85l.42-4z" />
+                </svg>
+        </div>
+    </div>
+</a>
+
+<!-- Sharingbutton Twitter -->
+<a class="resp-sharing-button__link" href="https://twitter.com/intent/tweet/?text=Implementing%20a%20GraphQL%20server&amp;url=https://vertx-howtos.github.io/graphql-howto"
+    target="_blank" rel="noopener" aria-label="">
+    <div class="resp-sharing-button resp-sharing-button--twitter resp-sharing-button--small">
+        <div aria-hidden="true" class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path
+                    d="M23.44 4.83c-.8.37-1.5.38-2.22.02.93-.56.98-.96 1.32-2.02-.88.52-1.86.9-2.9 1.1-.82-.88-2-1.43-3.3-1.43-2.5 0-4.55 2.04-4.55 4.54 0 .36.03.7.1 1.04-3.77-.2-7.12-2-9.36-4.75-.4.67-.6 1.45-.6 2.3 0 1.56.8 2.95 2 3.77-.74-.03-1.44-.23-2.05-.57v.06c0 2.2 1.56 4.03 3.64 4.44-.67.2-1.37.2-2.06.08.58 1.8 2.26 3.12 4.25 3.16C5.78 18.1 3.37 18.74 1 18.46c2 1.3 4.4 2.04 6.97 2.04 8.35 0 12.92-6.92 12.92-12.93 0-.2 0-.4-.02-.6.9-.63 1.96-1.22 2.56-2.14z" />
+                </svg>
+        </div>
+    </div>
+</a>
+
+<!-- Sharingbutton E-Mail -->
+<a class="resp-sharing-button__link" href="mailto:?subject=Implementing%20a%20GraphQL%20server&amp;body=https://vertx-howtos.github.io/graphql-howto" target="_self" rel="noopener"
+    aria-label="">
+    <div class="resp-sharing-button resp-sharing-button--email resp-sharing-button--small">
+        <div aria-hidden="true" class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path
+                    d="M22 4H2C.9 4 0 4.9 0 6v12c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM7.25 14.43l-3.5 2c-.08.05-.17.07-.25.07-.17 0-.34-.1-.43-.25-.14-.24-.06-.55.18-.68l3.5-2c.24-.14.55-.06.68.18.14.24.06.55-.18.68zm4.75.07c-.1 0-.2-.03-.27-.08l-8.5-5.5c-.23-.15-.3-.46-.15-.7.15-.22.46-.3.7-.14L12 13.4l8.23-5.32c.23-.15.54-.08.7.15.14.23.07.54-.16.7l-8.5 5.5c-.08.04-.17.07-.27.07zm8.93 1.75c-.1.16-.26.25-.43.25-.08 0-.17-.02-.25-.07l-3.5-2c-.24-.13-.32-.44-.18-.68s.44-.32.68-.18l3.5 2c.24.13.32.44.18.68z" />
+                </svg>
+        </div>
+    </div>
+</a>
+
+<!-- Sharingbutton LinkedIn -->
+<a class="resp-sharing-button__link"
+    href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://vertx-howtos.github.io/graphql-howto&amp;title=Implementing%20a%20GraphQL%20server&amp;summary=Implementing%20a%20GraphQL%20server&amp;source=https://vertx-howtos.github.io/graphql-howto"
+    target="_blank" rel="noopener" aria-label="">
+    <div class="resp-sharing-button resp-sharing-button--linkedin resp-sharing-button--small">
+        <div aria-hidden="true" class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path
+                    d="M6.5 21.5h-5v-13h5v13zM4 6.5C2.5 6.5 1.5 5.3 1.5 4s1-2.4 2.5-2.4c1.6 0 2.5 1 2.6 2.5 0 1.4-1 2.5-2.6 2.5zm11.5 6c-1 0-2 1-2 2v7h-5v-13h5V10s1.6-1.5 4-1.5c3 0 5 2.2 5 6.3v6.7h-5v-7c0-1-1-2-2-2z" />
+                </svg>
+        </div>
+    </div>
+</a>
+
+<!-- Sharingbutton Reddit -->
+<a class="resp-sharing-button__link"
+    href="https://reddit.com/submit/?url=https://vertx-howtos.github.io/graphql-howto&amp;resubmit=true&amp;title=Implementing%20a%20GraphQL%20server" target="_blank" rel="noopener"
+    aria-label="">
+    <div class="resp-sharing-button resp-sharing-button--reddit resp-sharing-button--small">
+        <div aria-hidden="true" class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path
+                    d="M24 11.5c0-1.65-1.35-3-3-3-.96 0-1.86.48-2.42 1.24-1.64-1-3.75-1.64-6.07-1.72.08-1.1.4-3.05 1.52-3.7.72-.4 1.73-.24 3 .5C17.2 6.3 18.46 7.5 20 7.5c1.65 0 3-1.35 3-3s-1.35-3-3-3c-1.38 0-2.54.94-2.88 2.22-1.43-.72-2.64-.8-3.6-.25-1.64.94-1.95 3.47-2 4.55-2.33.08-4.45.7-6.1 1.72C4.86 8.98 3.96 8.5 3 8.5c-1.65 0-3 1.35-3 3 0 1.32.84 2.44 2.05 2.84-.03.22-.05.44-.05.66 0 3.86 4.5 7 10 7s10-3.14 10-7c0-.22-.02-.44-.05-.66 1.2-.4 2.05-1.54 2.05-2.84zM2.3 13.37C1.5 13.07 1 12.35 1 11.5c0-1.1.9-2 2-2 .64 0 1.22.32 1.6.82-1.1.85-1.92 1.9-2.3 3.05zm3.7.13c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zm9.8 4.8c-1.08.63-2.42.96-3.8.96-1.4 0-2.74-.34-3.8-.95-.24-.13-.32-.44-.2-.68.15-.24.46-.32.7-.18 1.83 1.06 4.76 1.06 6.6 0 .23-.13.53-.05.67.2.14.23.06.54-.18.67zm.2-2.8c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm5.7-2.13c-.38-1.16-1.2-2.2-2.3-3.05.38-.5.97-.82 1.6-.82 1.1 0 2 .9 2 2 0 .84-.53 1.57-1.3 1.87z" />
+                </svg>
+        </div>
+    </div>
+</a>
+
+<!-- Sharingbutton WhatsApp -->
+<a class="resp-sharing-button__link" href="whatsapp://send?text=Implementing%20a%20GraphQL%20server%20https://vertx-howtos.github.io/graphql-howto" target="_blank" rel="noopener"
+    aria-label="">
+    <div class="resp-sharing-button resp-sharing-button--whatsapp resp-sharing-button--small">
+        <div aria-hidden="true" class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path
+                    d="M20.1 3.9C17.9 1.7 15 .5 12 .5 5.8.5.7 5.6.7 11.9c0 2 .5 3.9 1.5 5.6L.6 23.4l6-1.6c1.6.9 3.5 1.3 5.4 1.3 6.3 0 11.4-5.1 11.4-11.4-.1-2.8-1.2-5.7-3.3-7.8zM12 21.4c-1.7 0-3.3-.5-4.8-1.3l-.4-.2-3.5 1 1-3.4L4 17c-1-1.5-1.4-3.2-1.4-5.1 0-5.2 4.2-9.4 9.4-9.4 2.5 0 4.9 1 6.7 2.8 1.8 1.8 2.8 4.2 2.8 6.7-.1 5.2-4.3 9.4-9.5 9.4zm5.1-7.1c-.3-.1-1.7-.9-1.9-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.1-.2.2-.3.2-.6.1s-1.2-.5-2.3-1.4c-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6s.3-.3.4-.5c.2-.1.3-.3.4-.5.1-.2 0-.4 0-.5C10 9 9.3 7.6 9 7c-.1-.4-.4-.3-.5-.3h-.6s-.4.1-.7.3c-.3.3-1 1-1 2.4s1 2.8 1.1 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.3-.3-.4-.6-.5z" />
+                </svg>
+        </div>
+    </div>
+</a>
+
+<!-- Sharingbutton Telegram -->
+<a class="resp-sharing-button__link" href="https://telegram.me/share/url?text=Implementing%20a%20GraphQL%20server&amp;url=https://vertx-howtos.github.io/graphql-howto"
+    target="_blank" rel="noopener" aria-label="">
+    <div class="resp-sharing-button resp-sharing-button--telegram resp-sharing-button--small">
+        <div aria-hidden="true" class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path
+                    d="M.707 8.475C.275 8.64 0 9.508 0 9.508s.284.867.718 1.03l5.09 1.897 1.986 6.38a1.102 1.102 0 0 0 1.75.527l2.96-2.41a.405.405 0 0 1 .494-.013l5.34 3.87a1.1 1.1 0 0 0 1.046.135 1.1 1.1 0 0 0 .682-.803l3.91-18.795A1.102 1.102 0 0 0 22.5.075L.706 8.475z" />
+                </svg>
+        </div>
+    </div>
+</a>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <hr>
+      <p><small>Last published: 2019-05-10 13:39:07 +0000.</small></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const blocks = document.getElementsByClassName("collapsed");
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i];
+      const blockWrapper = document.createElement("div");
+      const details = document.createElement("details");
+      const summary = document.createElement("summary");
+      summary.innerHTML = "Details <em>(click to expand)</em>";
+      details.appendChild(summary);
+      details.appendChild(blockWrapper);
+      block.parentNode.insertBefore(details, block);
+      blockWrapper.appendChild(block);
+    }
+  })();
+</script>
+
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k"
+    crossorigin="anonymous"></script>
+</body>
+
+</html>
