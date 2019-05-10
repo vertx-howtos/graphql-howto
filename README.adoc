@@ -2,6 +2,10 @@
 :page-permalink: /
 :page-github: vertx-howtos/graphql-howto
 
+ifdef::env-github[]
+image:https://travis-ci.org/vertx-howtos/graphql-howto.svg?branch=master["Build Status", link="https://travis-ci.org/vertx-howtos/graphql-howto"]
+endif::env-github[]
+
 This document will show you how to implement a GraphQL server.
 
 == What you will build
