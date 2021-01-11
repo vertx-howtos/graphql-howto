@@ -10,6 +10,7 @@ import graphql.schema.idl.TypeDefinitionRegistry;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.graphql.GraphQLHandler;
 
 import java.util.List;
@@ -33,7 +34,8 @@ public class GraphQLVerticle extends AbstractVerticle {
     GraphQLHandler graphQLHandler = GraphQLHandler.create(graphQL); // <1>
 
     Router router = Router.router(vertx);
-    router.route("/graphql").handler(graphQLHandler); // <2>
+    router.route().handler(BodyHandler.create()); // <2>
+    router.route("/graphql").handler(graphQLHandler); // <3>
 
     vertx.createHttpServer()
       .requestHandler(router)
