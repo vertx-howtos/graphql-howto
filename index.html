@@ -121,7 +121,7 @@
   <span style="color: #000080">&lt;version&gt;</span>1.0-SNAPSHOT<span style="color: #000080">&lt;/version&gt;</span>
 
   <span style="color: #000080">&lt;properties&gt;</span>
-    <span style="color: #000080">&lt;vertx.version&gt;</span>3.7.0<span style="color: #000080">&lt;/vertx.version&gt;</span>
+    <span style="color: #000080">&lt;vertx.version&gt;</span>4.0.0<span style="color: #000080">&lt;/vertx.version&gt;</span>
     <span style="color: #000080">&lt;maven.compiler.source&gt;</span>1.8<span style="color: #000080">&lt;/maven.compiler.source&gt;</span>
     <span style="color: #000080">&lt;maven.compiler.target&gt;</span>1.8<span style="color: #000080">&lt;/maven.compiler.target&gt;</span>
   <span style="color: #000080">&lt;/properties&gt;</span>
@@ -180,7 +180,7 @@
 <span style="background-color: #f8f8f8">}</span>
 
 <span style="color: #990000;font-weight: bold">dependencies</span> <span style="background-color: #f8f8f8">{</span>
-  <span style="color: #000000;font-weight: bold">val</span> <span style="background-color: #f8f8f8">vertxVersion</span> <span style="background-color: #f8f8f8">=</span> <span style="color: #d14">"3.7.0"</span>
+  <span style="color: #000000;font-weight: bold">val</span> <span style="background-color: #f8f8f8">vertxVersion</span> <span style="background-color: #f8f8f8">=</span> <span style="color: #d14">"4.0.0"</span>
   <span style="color: #990000;font-weight: bold">implementation</span><span style="background-color: #f8f8f8">(</span><span style="color: #d14">"io.vertx:vertx-web-graphql:${vertxVersion}"</span><span style="background-color: #f8f8f8">)</span>
 <span style="background-color: #f8f8f8">}</span>
 
@@ -415,7 +415,8 @@ Now let&#8217;s put things together in the verticle <code>start</code> method:</
     <span style="color: #445588;font-weight: bold">GraphQLHandler</span> <span style="background-color: #f8f8f8">graphQLHandler</span> <span style="color: #000000;font-weight: bold">=</span> <span style="color: #445588;font-weight: bold">GraphQLHandler</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">create</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">graphQL</span><span style="color: #000000;font-weight: bold">);</span> // <b class="conum">(1)</b>
 
     <span style="color: #445588;font-weight: bold">Router</span> <span style="background-color: #f8f8f8">router</span> <span style="color: #000000;font-weight: bold">=</span> <span style="color: #445588;font-weight: bold">Router</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">router</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">vertx</span><span style="color: #000000;font-weight: bold">);</span>
-    <span style="background-color: #f8f8f8">router</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">route</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #d14">"/graphql"</span><span style="color: #000000;font-weight: bold">).</span><span style="color: #008080">handler</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">graphQLHandler</span><span style="color: #000000;font-weight: bold">);</span> // <b class="conum">(2)</b>
+    <span style="background-color: #f8f8f8">router</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">route</span><span style="color: #000000;font-weight: bold">().</span><span style="color: #008080">handler</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #445588;font-weight: bold">BodyHandler</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">create</span><span style="color: #000000;font-weight: bold">());</span> // <b class="conum">(2)</b>
+    <span style="background-color: #f8f8f8">router</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">route</span><span style="color: #000000;font-weight: bold">(</span><span style="color: #d14">"/graphql"</span><span style="color: #000000;font-weight: bold">).</span><span style="color: #008080">handler</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">graphQLHandler</span><span style="color: #000000;font-weight: bold">);</span> // <b class="conum">(3)</b>
 
     <span style="background-color: #f8f8f8">vertx</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">createHttpServer</span><span style="color: #000000;font-weight: bold">()</span>
       <span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">requestHandler</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">router</span><span style="color: #000000;font-weight: bold">)</span>
@@ -427,6 +428,9 @@ Now let&#8217;s put things together in the verticle <code>start</code> method:</
 <ol>
 <li>
 <p>Create Vert.x Web GraphQL handler for the GraphQL-Java object</p>
+</li>
+<li>
+<p>Define a <em>catch-all</em> Vert.x Web route and set the <code>BodyHandler</code> (required to handle <code>POST</code> requests bodies)</p>
 </li>
 <li>
 <p>Define a Vert.x Web route for GraphQL queries and set the GraphQL handler</p>
@@ -488,7 +492,7 @@ Please refer to the <a href="https://httpie.org/doc#installation">installation</
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="shell">http :8080/graphql <span style="color: #008080">query</span><span style="color: #000000;font-weight: bold">==</span><span style="color: #d14">'
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="shell">http :8080/graphql <span style="color: #008080">query</span><span style="color: #000000;font-weight: bold">=</span><span style="color: #d14">'
 query {
   allTasks {
     id,
@@ -530,7 +534,7 @@ query {
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="shell">http :8080/graphql <span style="color: #008080">query</span><span style="color: #000000;font-weight: bold">==</span><span style="color: #d14">'
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="shell">http :8080/graphql <span style="color: #008080">query</span><span style="color: #000000;font-weight: bold">=</span><span style="color: #d14">'
 mutation {
   complete(id: "4a9f53fd-584f-4169-b725-6b320043db8b")
 }'</span></code></pre>
@@ -568,7 +572,7 @@ The <code>id</code> used in the query above must be changed to the value generat
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="shell">http :8080/graphql <span style="color: #008080">query</span><span style="color: #000000;font-weight: bold">==</span><span style="color: #d14">'
+<pre class="rouge highlight" style="background-color: #f8f8f8"><code data-lang="shell">http :8080/graphql <span style="color: #008080">query</span><span style="color: #000000;font-weight: bold">=</span><span style="color: #d14">'
 query {
   allTasks(uncompletedOnly: false) {
     id
@@ -745,7 +749,7 @@ query {
   <div class="row">
     <div class="col">
       <hr>
-      <p><small>Last published: 2021-01-11 19:33:40 +0000.</small></p>
+      <p><small>Last published: 2021-01-11 21:48:58 +0000.</small></p>
     </div>
   </div>
 </div>
