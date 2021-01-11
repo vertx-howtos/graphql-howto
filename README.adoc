@@ -181,7 +181,8 @@ ifndef::env-github[]
 include::src/main/java/io/vertx/howtos/graphql/GraphQLVerticle.java[tag=start]
 ----
 <1> Create Vert.x Web GraphQL handler for the GraphQL-Java object
-<2> Define a Vert.x Web route for GraphQL queries and set the GraphQL handler
+<2> Define a _catch-all_ Vert.x Web route and set the `BodyHandler` (required to handle `POST` requests bodies)
+<3> Define a Vert.x Web route for GraphQL queries and set the GraphQL handler
 endif::env-github[]
 
 == Running the application
@@ -215,7 +216,7 @@ To list uncompleted tasks, open your terminal and execute this:
 
 [source,shell]
 ----
-http :8080/graphql query=='
+http :8080/graphql query='
 query {
   allTasks {
     id,
@@ -254,7 +255,7 @@ To complete the _Learn GraphQL_ task:
 
 [source,shell]
 ----
-http :8080/graphql query=='
+http :8080/graphql query='
 mutation {
   complete(id: "4a9f53fd-584f-4169-b725-6b320043db8b")
 }'
@@ -279,7 +280,7 @@ If you need to retrieve all tasks, including those already completed, make sure 
 
 [source,shell]
 ----
-http :8080/graphql query=='
+http :8080/graphql query='
 query {
   allTasks(uncompletedOnly: false) {
     id
