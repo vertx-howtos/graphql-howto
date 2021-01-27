@@ -3,7 +3,7 @@
 :page-github: vertx-howtos/graphql-howto
 
 ifdef::env-github[]
-image:https://travis-ci.org/vertx-howtos/graphql-howto.svg?branch=master["Build Status", link="https://travis-ci.org/vertx-howtos/graphql-howto"]
+image:https://github.com/vertx-howtos/graphql-howto/workflows/Publish%20the%20how-to/badge.svg["Build Status", link="https://github.com/vertx-howtos/graphql-howto/actions?query=workflow%3A%22Publish+the+how-to%22"]
 endif::env-github[]
 
 This document will show you how to implement a GraphQL server.
