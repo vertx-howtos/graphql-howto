@@ -2,14 +2,9 @@ package io.vertx.howtos.graphql;
 
 import java.util.UUID;
 
-public class Task {
-
-  public String id;
-  public String description;
-  public boolean completed;
+public record Task(String id, String description, boolean completed) {
 
   public Task(String description) {
-    id = UUID.randomUUID().toString(); // <1>
-    this.description = description;
+    this(UUID.randomUUID().toString(), description, false); // <1>
   }
 }

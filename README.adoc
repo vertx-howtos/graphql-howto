@@ -21,7 +21,7 @@ The application consists in a few files:
 == What you need
 
 * A text editor or IDE
-* Java 8 higher
+* Java 17 or higher
 * Maven or Gradle
 
 == Create a project

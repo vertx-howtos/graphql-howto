@@ -8,14 +8,14 @@ repositories {
 }
 
 dependencies {
-  val vertxVersion = "4.0.0"
+  val vertxVersion = "4.2.1"
   implementation("io.vertx:vertx-web-graphql:${vertxVersion}")
 }
 
 application {
-  mainClassName = "io.vertx.howtos.graphql.GraphQLVerticle"
+  mainClass.set("io.vertx.howtos.graphql.GraphQLVerticle")
 }
 
 tasks.wrapper {
-  gradleVersion = "5.2"
+  gradleVersion = "7.2"
 }
