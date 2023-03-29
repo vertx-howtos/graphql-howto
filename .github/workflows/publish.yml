@@ -19,9 +19,9 @@ jobs:
       - name: Run builds
         run: ./.run.builds.sh
       - name: Setup Ruby
-        uses: actions/setup-ruby@v1
+        uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '2.6'
+          ruby-version: '2.7'
       - uses: actions/checkout@v2
         with:
           ref: "gh-pages"

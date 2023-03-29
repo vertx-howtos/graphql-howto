@@ -7,9 +7,15 @@ repositories {
   mavenCentral()
 }
 
+java {
+  toolchain {
+    languageVersion.set(JavaLanguageVersion.of(17))
+  }
+}
+
 dependencies {
-  val vertxVersion = "4.2.1"
-  implementation("io.vertx:vertx-web-graphql:${vertxVersion}")
+  implementation(platform("io.vertx:vertx-stack-depchain:4.4.0"))
+  implementation("io.vertx:vertx-web-graphql")
 }
 
 application {
@@ -17,5 +23,5 @@ application {
 }
 
 tasks.wrapper {
-  gradleVersion = "7.2"
+  gradleVersion = "7.6"
 }
