@@ -12,10 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Install JDK 11
+      - name: Install JDK 17
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-          version: 11
+          version: 17
       - name: Run builds
         run: ./.run.builds.sh
       - name: Setup Ruby
