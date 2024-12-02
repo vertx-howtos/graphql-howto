@@ -326,5 +326,5 @@ This document covered:
 
 == See also
 
-- https://www.graphql-java.com/documentation/v12/[The GraphQL-Java documentation]
+- https://www.graphql-java.com/documentation/getting-started[The GraphQL-Java documentation]
 - https://vertx.io/docs/vertx-web-graphql/java/[The Vert.x Web GraphQL Handler documentation]

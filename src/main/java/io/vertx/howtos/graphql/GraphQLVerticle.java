@@ -4,7 +4,8 @@ import graphql.GraphQL;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
-import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Future;
+import io.vertx.core.VerticleBase;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -19,13 +20,13 @@ import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
-public class GraphQLVerticle extends AbstractVerticle {
+public class GraphQLVerticle extends VerticleBase {
 
   // tag::start[]
   private Map<String, Task> tasks;
 
   @Override
-  public void start() {
+  public Future<?> start() {
     tasks = initData();
 
     var graphQL = setupGraphQL();
@@ -35,7 +36,7 @@ public class GraphQLVerticle extends AbstractVerticle {
     router.route().handler(BodyHandler.create()); // <2>
     router.route("/graphql").handler(graphQLHandler); // <3>
 
-    vertx.createHttpServer()
+    return vertx.createHttpServer()
       .requestHandler(router)
       .listen(8080);
   }
@@ -94,13 +95,8 @@ public class GraphQLVerticle extends AbstractVerticle {
   // tag::main[]
   public static void main(String[] args) {
     var vertx = Vertx.vertx(); // <1>
-    vertx.deployVerticle(new GraphQLVerticle()).onComplete(ar -> { // <2>
-      if (ar.succeeded()) {
-        System.out.println("Verticle deployed");
-      } else {
-        ar.cause().printStackTrace();
-      }
-    });
+    vertx.deployVerticle(new GraphQLVerticle()).await(); // <2>
+    System.out.println("Verticle deployed");
   }
   // end::main[]
 }

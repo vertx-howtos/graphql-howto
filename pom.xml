@@ -10,7 +10,7 @@
   <version>1.0-SNAPSHOT</version>
 
   <properties>
-    <vertx.version>4.4.0</vertx.version>
+    <vertx.version>5.0.0.CR2</vertx.version>
   </properties>
 
   <dependencyManagement>
