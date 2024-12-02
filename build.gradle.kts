@@ -21,7 +21,3 @@ dependencies {
 application {
   mainClass.set("io.vertx.howtos.graphql.GraphQLVerticle")
 }
-
-tasks.wrapper {
-  gradleVersion = "7.6"
-}
